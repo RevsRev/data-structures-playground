@@ -12,7 +12,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -41,28 +40,6 @@ public class ListBenchmark {
             case ARRAY_LIST -> new ArrayList<>(seed);
             case LINKED_LIST -> new LinkedList<>(seed);
         };
-    }
-
-    @Benchmark
-    public void benchmarkIteration(final Blackhole bh)
-    {
-        for (final Long l : list) {
-            bh.consume(l);
-        }
-    }
-
-    @Benchmark
-    public void benchmarkIterateAndRemove(final Blackhole bh)
-    {
-        int i = 0;
-        final Iterator<Long> iterator = list.iterator();
-        while (iterator.hasNext()) {
-            bh.consume(iterator.next());
-            if (i % 10 == 0) {
-                iterator.remove();
-            }
-            i++;
-        }
     }
 
     @Benchmark

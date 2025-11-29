@@ -5,12 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ListBenchmarkResults {
+public class BenchmarkResultsElement {
 
     final Map<String, Map<String, LogBenchmarkResultSeries>> results = new HashMap<>();
 
     public final void addResult(final String methodName,
-                                final String listType,
+                                final String type,
                                 final String size,
                                 final double score)
     {
@@ -18,7 +18,7 @@ public class ListBenchmarkResults {
                 results.computeIfAbsent(methodName, k -> new HashMap<>());
 
         final LogBenchmarkResultSeries logBenchmarkResultSeries =
-                methodResults.computeIfAbsent(listType, k -> new LogBenchmarkResultSeries());
+                methodResults.computeIfAbsent(type, k -> new LogBenchmarkResultSeries());
 
         logBenchmarkResultSeries.addResult(Integer.parseInt(size), score);
     }

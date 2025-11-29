@@ -1,7 +1,8 @@
 package com.rev.playground;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rev.playground.results.ListBenchmarkResults;
+import com.rev.playground.results.BenchmarkResults;
+import com.rev.playground.results.BenchmarkResultsElement;
 import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.XYChart;
@@ -33,41 +34,48 @@ public class Main {
 
         boolean loadResultsFromFile = args.length > 0 && "load".equals(args[0]);
 
-        final ListBenchmarkResults listBenchmarkResults = loadResultsFromFile ? loadResultsFromFile() : runBenchmark();
+        final BenchmarkResults benchmarkResults = loadResultsFromFile ? loadResultsFromFile() : runBenchmark();
 
-        final Map<String, Map<String, ListBenchmarkResults.LogBenchmarkResultSeries>> resultsForGraph =
-                listBenchmarkResults.getResults();
+        final List<XYChart> collectionCharts = getCharts(benchmarkResults.getCollectionResults());
+        final List<XYChart> listCharts = getCharts(benchmarkResults.getListResults());
+
+        new SwingWrapper<>(collectionCharts).displayChartMatrix();
+        new SwingWrapper<>(listCharts).displayChartMatrix();
+    }
+
+    private static List<XYChart> getCharts(final BenchmarkResultsElement benchmarkResultsElement) {
+        final Map<String, Map<String, BenchmarkResultsElement.LogBenchmarkResultSeries>> resultsForGraph =
+                benchmarkResultsElement.getResults();
 
         final List<XYChart> charts = new ArrayList<>();
 
-        for (final Map.Entry<String, Map<String, ListBenchmarkResults.LogBenchmarkResultSeries>> resultForChart :
+        for (final Map.Entry<String, Map<String, BenchmarkResultsElement.LogBenchmarkResultSeries>> resultForChart :
                 resultsForGraph.entrySet()) {
 
             final String benchmarkName = resultForChart.getKey();
-            final Map<String, ListBenchmarkResults.LogBenchmarkResultSeries> resultsByListType = resultForChart.getValue();
-            final Iterator<Map.Entry<String, ListBenchmarkResults.LogBenchmarkResultSeries>> typeAndResultIterator =
+            final Map<String, BenchmarkResultsElement.LogBenchmarkResultSeries> resultsByListType = resultForChart.getValue();
+            final Iterator<Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries>> typeAndResultIterator =
                     resultsByListType.entrySet().iterator();
 
-            Map.Entry<String, ListBenchmarkResults.LogBenchmarkResultSeries> typeAndResult = typeAndResultIterator.next();
+            Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> typeAndResult = typeAndResultIterator.next();
 
             final XYChart chart = QuickChart.getChart(benchmarkName, "Size", "Ops/s", typeAndResult.getKey(),
                     typeAndResult.getValue().getSizes(), typeAndResult.getValue().getScores());
 
             while (typeAndResultIterator.hasNext()) {
-                final Map.Entry<String, ListBenchmarkResults.LogBenchmarkResultSeries> next = typeAndResultIterator.next();
+                final Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> next = typeAndResultIterator.next();
                 chart.addSeries(next.getKey(), next.getValue().getSizes(), next.getValue().getScores());
             }
 
             charts.add(chart);
         }
-
-        new SwingWrapper<>(charts).displayChartMatrix();
+        return charts;
     }
 
-    private static ListBenchmarkResults loadResultsFromFile() throws IOException {
+    private static BenchmarkResults loadResultsFromFile() throws IOException {
         final File file = getFile();
         final ObjectMapper om = new ObjectMapper();
-        return om.readValue(file, ListBenchmarkResults.class);
+        return om.readValue(file, BenchmarkResults.class);
     }
 
     private static File getFile() throws FileNotFoundException {
@@ -77,13 +85,13 @@ public class Main {
         return new File(filePath);
     }
 
-    private static ListBenchmarkResults runBenchmark() throws RunnerException {
+    private static BenchmarkResults runBenchmark() throws RunnerException {
         final Options options = new OptionsBuilder().include("com.rev.playground.benchmarks*").forks(1).build();
 
         final Runner runner = new Runner(options);
         final Collection<RunResult> results = runner.run();
 
-        final ListBenchmarkResults listBenchmarkResults = new ListBenchmarkResults();
+        final BenchmarkResults benchmarkResultsElement = new BenchmarkResults();
 
         for (final RunResult result : results) {
 
@@ -96,7 +104,13 @@ public class Main {
                     final String size = result.getParams().getParam("size");
                     final String implementation = result.getParams().getParam("listType");
 
-                    listBenchmarkResults.addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                    benchmarkResultsElement.getListResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                }
+                case "CollectionBenchmark" -> {
+                    final String size = result.getParams().getParam("size");
+                    final String implementation = result.getParams().getParam("collectionType");
+
+                    benchmarkResultsElement.getCollectionResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
             }
         }
@@ -108,12 +122,12 @@ public class Main {
                     final ObjectMapper om = new ObjectMapper();
                     try {
                         final File f = getFile();
-                        om.writer().writeValue(f, listBenchmarkResults);
+                        om.writer().writeValue(f, benchmarkResultsElement);
                     } catch (Exception e) {
                         LOGGER.error("Could not save benchmark results to file", e);
                     }
                 }
         );
-        return listBenchmarkResults;
+        return benchmarkResultsElement;
     }
 }
