@@ -1,0 +1,53 @@
+package com.rev.playground.results;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class ListBenchmarkResults {
+
+    final Map<String, Map<String, LogBenchmarkResultSeries>> results = new HashMap<>();
+
+    public final void addResult(final String methodName,
+                                final String listType,
+                                final String size,
+                                final double score)
+    {
+        final Map<String, LogBenchmarkResultSeries> methodResults =
+                results.computeIfAbsent(methodName, k -> new HashMap<>());
+
+        final LogBenchmarkResultSeries logBenchmarkResultSeries =
+                methodResults.computeIfAbsent(listType, k -> new LogBenchmarkResultSeries());
+
+        logBenchmarkResultSeries.addResult(Integer.parseInt(size), score);
+    }
+
+    public final Map<String, Map<String, LogBenchmarkResultSeries>> getResults()
+    {
+        return results;
+    }
+
+    public static final class LogBenchmarkResultSeries {
+
+        final List<Double> sizes = new ArrayList<>();
+        final List<Double> scores = new ArrayList<>();
+
+        private void addResult(final double size, final double score) {
+            sizes.add(Math.log(size));
+            scores.add(Math.log(score));
+        }
+
+        public double[] getSizes()
+        {
+            return sizes.stream().mapToDouble(Double::doubleValue).toArray();
+        }
+
+        public double[] getScores()
+        {
+            return scores.stream().mapToDouble(Double::doubleValue).toArray();
+        }
+
+    }
+
+}
