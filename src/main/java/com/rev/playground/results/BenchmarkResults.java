@@ -4,6 +4,7 @@ public class BenchmarkResults {
 
     private final BenchmarkResultsElement collectionResults = new BenchmarkResultsElement();
     private final BenchmarkResultsElement listResults = new BenchmarkResultsElement();
+    private final BenchmarkResultsElement mapResults = new BenchmarkResultsElement();
 
     public final BenchmarkResultsElement getCollectionResults() {
 
@@ -12,5 +13,9 @@ public class BenchmarkResults {
 
     public final BenchmarkResultsElement getListResults() {
         return listResults;
+    }
+
+    public BenchmarkResultsElement getMapResults() {
+        return mapResults;
     }
 }

@@ -38,9 +38,11 @@ public class Main {
 
         final List<XYChart> collectionCharts = getCharts(benchmarkResults.getCollectionResults());
         final List<XYChart> listCharts = getCharts(benchmarkResults.getListResults());
+        final List<XYChart> mapCharts = getCharts(benchmarkResults.getMapResults());
 
         new SwingWrapper<>(collectionCharts).displayChartMatrix();
         new SwingWrapper<>(listCharts).displayChartMatrix();
+        new SwingWrapper<>(mapCharts).displayChartMatrix();
     }
 
     private static List<XYChart> getCharts(final BenchmarkResultsElement benchmarkResultsElement) {
@@ -111,6 +113,12 @@ public class Main {
                     final String implementation = result.getParams().getParam("collectionType");
 
                     benchmarkResultsElement.getCollectionResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                }
+                case "MapBenchmark" -> {
+                    final String size = result.getParams().getParam("size");
+                    final String implementation = result.getParams().getParam("mapType");
+
+                    benchmarkResultsElement.getMapResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
             }
         }
