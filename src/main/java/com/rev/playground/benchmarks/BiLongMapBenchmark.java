@@ -1,5 +1,6 @@
 package com.rev.playground.benchmarks;
 
+import com.rev.playground.datastructures.tm.BiLongJavaTreeMap;
 import com.rev.playground.datastructures.tm.BiLongMap;
 import com.rev.playground.datastructures.tm.BiLongRedBlackTreeMap;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -12,6 +13,8 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.TreeMap;
+
 @State(Scope.Thread)
 @Warmup(iterations = 3, time = 1)
 @Measurement(iterations = 3, time = 1)
@@ -23,7 +26,7 @@ public class BiLongMapBenchmark {
 //    @Param({"1", "10", "100", "1000"})
     int secondKeySize = 4;
 
-    @Param({"BI_LONG_RED_BLACK_TREE"})
+    @Param({"BI_LONG_RED_BLACK_TREE", "BI_LONG_JAVA_TREE"})
     MapType mapType;
 
     BiLongMap<Long> map;
@@ -32,6 +35,7 @@ public class BiLongMapBenchmark {
     public void setup() {
         map = switch (mapType) {
             case BI_LONG_RED_BLACK_TREE -> new BiLongRedBlackTreeMap<>();
+            case BI_LONG_JAVA_TREE -> new BiLongJavaTreeMap();
         };
 
         for (long i = 0; i < firstKeySize; i++) {
@@ -63,6 +67,7 @@ public class BiLongMapBenchmark {
     }
 
     public enum MapType {
-        BI_LONG_RED_BLACK_TREE
+        BI_LONG_RED_BLACK_TREE,
+        BI_LONG_JAVA_TREE
     }
 }
