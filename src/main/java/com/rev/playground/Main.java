@@ -1,6 +1,9 @@
 package com.rev.playground;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rev.playground.cli.CliParser;
+import com.rev.playground.config.BenchmarksOptions;
+import com.rev.playground.config.PlaygroundConfig;
 import com.rev.playground.results.BenchmarkResults;
 import com.rev.playground.results.BenchmarkResultsElement;
 import org.knowm.xchart.QuickChart;
@@ -9,6 +12,7 @@ import org.knowm.xchart.XYChart;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
@@ -18,11 +22,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class Main {
 
@@ -32,19 +38,23 @@ public class Main {
 
         System.setProperty("benchmark.file", "results.json");
 
-        boolean loadResultsFromFile = args.length > 0 && "load".equals(args[0]);
+        final PlaygroundConfig config = CliParser.parse(args);
 
-        final BenchmarkResults benchmarkResults = loadResultsFromFile ? loadResultsFromFile() : runBenchmark();
+        if (config == null) {
+            return;
+        }
 
-        final List<XYChart> collectionCharts = getCharts(benchmarkResults.getCollectionResults());
-        final List<XYChart> listCharts = getCharts(benchmarkResults.getListResults());
-        final List<XYChart> mapCharts = getCharts(benchmarkResults.getMapResults());
-        final List<XYChart> biLongMapCharts = getCharts(benchmarkResults.getBiLongMapResults());
+        final BenchmarkResults benchmarkResults =
+                config.load() ? loadResultsFromFile(config.benchmarks()) : runBenchmark(config.benchmarks());
 
-        new SwingWrapper<>(collectionCharts).displayChartMatrix();
-        new SwingWrapper<>(listCharts).displayChartMatrix();
-        new SwingWrapper<>(mapCharts).displayChartMatrix();
-        new SwingWrapper<>(biLongMapCharts).displayChartMatrix();
+        final List<List<XYChart>> charts = config.benchmarks().stream()
+                .map(b -> getResultsForBenchmark(b, benchmarkResults))
+                .map(Main::getCharts)
+                .toList();
+
+        for (List<XYChart> chart : charts) {
+            new SwingWrapper<>(chart).displayChartMatrix();
+        }
     }
 
     private static List<XYChart> getCharts(final BenchmarkResultsElement benchmarkResultsElement) {
@@ -57,17 +67,20 @@ public class Main {
                 resultsForGraph.entrySet()) {
 
             final String benchmarkName = resultForChart.getKey();
-            final Map<String, BenchmarkResultsElement.LogBenchmarkResultSeries> resultsByListType = resultForChart.getValue();
+            final Map<String, BenchmarkResultsElement.LogBenchmarkResultSeries> resultsByListType =
+                    resultForChart.getValue();
             final Iterator<Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries>> typeAndResultIterator =
                     resultsByListType.entrySet().iterator();
 
-            Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> typeAndResult = typeAndResultIterator.next();
+            Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> typeAndResult =
+                    typeAndResultIterator.next();
 
             final XYChart chart = QuickChart.getChart(benchmarkName, "Size", "Ops/s", typeAndResult.getKey(),
                     typeAndResult.getValue().getSizes(), typeAndResult.getValue().getScores());
 
             while (typeAndResultIterator.hasNext()) {
-                final Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> next = typeAndResultIterator.next();
+                final Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> next =
+                        typeAndResultIterator.next();
                 chart.addSeries(next.getKey(), next.getValue().getSizes(), next.getValue().getScores());
             }
 
@@ -76,10 +89,32 @@ public class Main {
         return charts;
     }
 
-    private static BenchmarkResults loadResultsFromFile() throws IOException {
+    private static BenchmarkResults loadResultsFromFile(Set<BenchmarksOptions> benchmarks) throws IOException {
         final File file = getFile();
         final ObjectMapper om = new ObjectMapper();
-        return om.readValue(file, BenchmarkResults.class);
+        final BenchmarkResults benchmarkResults = om.readValue(file, BenchmarkResults.class);
+
+        final BenchmarkResults filteredResults = new BenchmarkResults();
+        for (BenchmarksOptions benchmark : benchmarks) {
+            final BenchmarkResultsElement source = getResultsForBenchmark(benchmark, benchmarkResults);
+            final BenchmarkResultsElement target = getResultsForBenchmark(benchmark, filteredResults);
+
+            source.getResults().forEach((methodName, resultMap) -> resultMap.forEach(
+                    (type, result) -> target.addResult(methodName, type, result)));
+        }
+
+        return filteredResults;
+    }
+
+    private static BenchmarkResultsElement getResultsForBenchmark(BenchmarksOptions benchmark,
+                                                                  BenchmarkResults results) {
+        return switch (benchmark) {
+            case COLLECTION -> results.getCollectionResults();
+            case MAP -> results.getMapResults();
+            case LIST -> results.getListResults();
+            case BI_LONG_MAP -> results.getBiLongMapResults();
+            case ALL -> throw new RuntimeException("This should have been filtered out in parsing!");
+        };
     }
 
     private static File getFile() throws FileNotFoundException {
@@ -89,8 +124,18 @@ public class Main {
         return new File(filePath);
     }
 
-    private static BenchmarkResults runBenchmark() throws RunnerException {
-        final Options options = new OptionsBuilder().include("com.rev.playground.benchmarks*").forks(1).build();
+    private static BenchmarkResults runBenchmark(Set<BenchmarksOptions> benchmarks) throws RunnerException {
+
+        ChainedOptionsBuilder builder = new OptionsBuilder()
+                .include("com.rev.playground.benchmarks*")
+                .forks(1);
+
+        Arrays.stream(BenchmarksOptions.values())
+                .filter(b -> !benchmarks.contains(b) && b != BenchmarksOptions.ALL)
+                .map(Main::getExcludeRegex)
+                .forEach(builder::exclude);
+
+        final Options options = builder.build();
 
         final Runner runner = new Runner(options);
         final Collection<RunResult> results = runner.run();
@@ -108,42 +153,54 @@ public class Main {
                     final String size = result.getParams().getParam("size");
                     final String implementation = result.getParams().getParam("listType");
 
-                    benchmarkResultsElement.getListResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                    benchmarkResultsElement.getListResults()
+                            .addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
                 case "CollectionBenchmark" -> {
                     final String size = result.getParams().getParam("size");
                     final String implementation = result.getParams().getParam("collectionType");
 
-                    benchmarkResultsElement.getCollectionResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                    benchmarkResultsElement.getCollectionResults()
+                            .addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
                 case "MapBenchmark" -> {
                     final String size = result.getParams().getParam("size");
                     final String implementation = result.getParams().getParam("mapType");
 
-                    benchmarkResultsElement.getMapResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                    benchmarkResultsElement.getMapResults()
+                            .addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
                 case "BiLongMapBenchmark" -> {
                     final String size = result.getParams().getParam("firstKeySize");
                     final String implementation = result.getParams().getParam("mapType");
 
-                    benchmarkResultsElement.getBiLongMapResults().addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
+                    benchmarkResultsElement.getBiLongMapResults()
+                            .addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
             }
         }
 
         final Optional<String> saveFileLocation = Optional.ofNullable(System.getProperty("benchmark.file"));
 
-        saveFileLocation.ifPresent(
-                fPath -> {
-                    final ObjectMapper om = new ObjectMapper();
-                    try {
-                        final File f = getFile();
-                        om.writer().writeValue(f, benchmarkResultsElement);
-                    } catch (Exception e) {
-                        LOGGER.error("Could not save benchmark results to file", e);
-                    }
-                }
-        );
+        saveFileLocation.ifPresent(fPath -> {
+            final ObjectMapper om = new ObjectMapper();
+            try {
+                final File f = getFile();
+                om.writer().writeValue(f, benchmarkResultsElement);
+            } catch (Exception e) {
+                LOGGER.error("Could not save benchmark results to file", e);
+            }
+        });
         return benchmarkResultsElement;
+    }
+
+    private static String getExcludeRegex(final BenchmarksOptions b) {
+        return switch (b) {
+            case COLLECTION -> "com.rev.playground.benchmarks.CollectionBenchmark";
+            case MAP -> "com.rev.playground.benchmarks.MapBenchmark";
+            case LIST -> "com.rev.playground.benchmarks.ListBenchmark";
+            case BI_LONG_MAP -> "com.rev.playground.benchmarks.BiLongMapBenchmark";
+            case ALL -> throw new RuntimeException("This should have been filtered out during parsing!");
+        };
     }
 }

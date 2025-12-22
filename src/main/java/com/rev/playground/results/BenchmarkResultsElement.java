@@ -9,11 +9,17 @@ public class BenchmarkResultsElement {
 
     final Map<String, Map<String, LogBenchmarkResultSeries>> results = new HashMap<>();
 
+    public final void addResult(
+            final String methodName,
+            final String type,
+            final LogBenchmarkResultSeries series) {
+        results.computeIfAbsent(methodName, k -> new HashMap<>()).put(type, series);
+    }
+
     public final void addResult(final String methodName,
                                 final String type,
                                 final String size,
-                                final double score)
-    {
+                                final double score) {
         final Map<String, LogBenchmarkResultSeries> methodResults =
                 results.computeIfAbsent(methodName, k -> new HashMap<>());
 
@@ -23,8 +29,7 @@ public class BenchmarkResultsElement {
         logBenchmarkResultSeries.addResult(Integer.parseInt(size), score);
     }
 
-    public final Map<String, Map<String, LogBenchmarkResultSeries>> getResults()
-    {
+    public final Map<String, Map<String, LogBenchmarkResultSeries>> getResults() {
         return results;
     }
 
@@ -38,13 +43,11 @@ public class BenchmarkResultsElement {
             scores.add(Math.log(score));
         }
 
-        public double[] getSizes()
-        {
+        public double[] getSizes() {
             return sizes.stream().mapToDouble(Double::doubleValue).toArray();
         }
 
-        public double[] getScores()
-        {
+        public double[] getScores() {
             return scores.stream().mapToDouble(Double::doubleValue).toArray();
         }
 
