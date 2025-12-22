@@ -15,4 +15,6 @@ public interface BiLongMap<T> {
     void forEach(BiLongMapConsumer<T> consumer);
 
     T remove(long key0, long key1);
+
+    boolean containsKey(long key0, long key1);
 }

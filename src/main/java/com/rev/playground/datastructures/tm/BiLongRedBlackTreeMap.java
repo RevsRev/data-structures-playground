@@ -106,6 +106,11 @@ public class BiLongRedBlackTreeMap<T> implements BiLongMap<T> {
         return oldValue;
     }
 
+    @Override
+    public boolean containsKey(final long key0, final long key1) {
+        return getEntry(key0, key1) != NIL;
+    }
+
     private void deleteEntry(Entry<T> p) {
         modCount++;
         size--;
