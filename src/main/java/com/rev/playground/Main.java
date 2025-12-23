@@ -75,7 +75,7 @@ public class Main {
             Map.Entry<String, BenchmarkResultsElement.LogBenchmarkResultSeries> typeAndResult =
                     typeAndResultIterator.next();
 
-            final XYChart chart = QuickChart.getChart(benchmarkName, "Size", "Ops/s", typeAndResult.getKey(),
+            final XYChart chart = QuickChart.getChart(benchmarkName, "log10(Size)", "log10(Ops/s)", typeAndResult.getKey(),
                     typeAndResult.getValue().getSizes(), typeAndResult.getValue().getScores());
 
             while (typeAndResultIterator.hasNext()) {

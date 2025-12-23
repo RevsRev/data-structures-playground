@@ -1,5 +1,6 @@
 package com.rev.playground.benchmarks;
 
+import com.rev.playground.datastructures.tm.ArrayBackedBiLongRedBlackTreeMap;
 import com.rev.playground.datastructures.tm.BiLongJavaTreeMap;
 import com.rev.playground.datastructures.tm.BiLongMap;
 import com.rev.playground.datastructures.tm.BiLongRedBlackTreeMap;
@@ -20,13 +21,13 @@ import java.util.TreeMap;
 @Measurement(iterations = 3, time = 1)
 public class BiLongMapBenchmark {
 
-    @Param({"1", "10", "100", "1000"})
+    @Param({"1", "10", "100", "1000", "10000"})
     int firstKeySize;
 
 //    @Param({"1", "10", "100", "1000"})
-    int secondKeySize = 4;
+    int secondKeySize = 10;
 
-    @Param({"BI_LONG_RED_BLACK_TREE", "BI_LONG_JAVA_TREE"})
+    @Param({"BI_LONG_RED_BLACK_TREE", "BI_LONG_JAVA_TREE", "ARRAY_BACKED_BI_LONG_RED_BLACK_TREE"})
     MapType mapType;
 
     BiLongMap<Long> map;
@@ -36,6 +37,7 @@ public class BiLongMapBenchmark {
         map = switch (mapType) {
             case BI_LONG_RED_BLACK_TREE -> new BiLongRedBlackTreeMap<>();
             case BI_LONG_JAVA_TREE -> new BiLongJavaTreeMap();
+            case ARRAY_BACKED_BI_LONG_RED_BLACK_TREE -> ArrayBackedBiLongRedBlackTreeMap.create(firstKeySize * secondKeySize + 1, new Long[0]);
         };
 
         for (long i = 0; i < firstKeySize; i++) {
@@ -68,6 +70,7 @@ public class BiLongMapBenchmark {
 
     public enum MapType {
         BI_LONG_RED_BLACK_TREE,
-        BI_LONG_JAVA_TREE
+        BI_LONG_JAVA_TREE,
+        ARRAY_BACKED_BI_LONG_RED_BLACK_TREE
     }
 }

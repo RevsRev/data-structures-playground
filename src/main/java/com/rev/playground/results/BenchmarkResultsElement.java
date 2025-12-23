@@ -39,8 +39,8 @@ public class BenchmarkResultsElement {
         final List<Double> scores = new ArrayList<>();
 
         private void addResult(final double size, final double score) {
-            sizes.add(Math.log(size));
-            scores.add(Math.log(score));
+            sizes.add(Math.log10(size));
+            scores.add(Math.log10(score));
         }
 
         public double[] getSizes() {
