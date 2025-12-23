@@ -29,9 +29,11 @@ public class BiLongMapTest {
     public static Stream<Arguments> getMapInstance() {
         final Supplier<BiLongMap<Long>> biLongRedBlackTreeMapFactory = BiLongRedBlackTreeMap::new;
         final Supplier<BiLongMap<Long>> biLongJavaTreeMapFactory = BiLongJavaTreeMap::new;
+        final Supplier<BiLongMap<Long>> arrayBackedBiLongRedBlackTreeFactory = () -> ArrayBackedBiLongRedBlackTreeMap.create(1000000, new Long[0]);
         return Stream.of(
                 Arguments.of("BiLongRedBlackTreeMap", biLongRedBlackTreeMapFactory),
-                Arguments.of("BiLongJavaTreeMap", biLongJavaTreeMapFactory)
+                Arguments.of("BiLongJavaTreeMap", biLongJavaTreeMapFactory),
+                Arguments.of("ArrayBackedBiLongRedBlackTree", arrayBackedBiLongRedBlackTreeFactory)
         );
     }
 
