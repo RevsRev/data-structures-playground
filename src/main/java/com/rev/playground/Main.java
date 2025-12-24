@@ -170,7 +170,7 @@ public class Main {
                     benchmarkResultsElement.getMapResults()
                             .addResult(methodName, implementation, size, result.getPrimaryResult().getScore());
                 }
-                case "BiLongMapBenchmark" -> {
+                case "BiLongMapBenchmark", "BiLongToLongMapBenchmark" -> {
                     final String size = result.getParams().getParam("firstKeySize");
                     final String implementation = result.getParams().getParam("mapType");
 
@@ -199,7 +199,7 @@ public class Main {
             case COLLECTION -> "com.rev.playground.benchmarks.CollectionBenchmark";
             case MAP -> "com.rev.playground.benchmarks.MapBenchmark";
             case LIST -> "com.rev.playground.benchmarks.ListBenchmark";
-            case BI_LONG_MAP -> "com.rev.playground.benchmarks.BiLongMapBenchmark";
+            case BI_LONG_MAP -> "com.rev.playground.benchmarks.BiLongMapBenchmark"; //TODO -Fix me for bilongtolong
             case ALL -> throw new RuntimeException("This should have been filtered out during parsing!");
         };
     }
