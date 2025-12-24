@@ -15,7 +15,7 @@ public class BiLongToLongMapBenchmark {
 //    @Param({"1", "10", "100", "1000"})
     int secondKeySize = 10;
 
-    @Param({"ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE"})
+    @Param({"ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE", "ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE_V2"})
     MapType mapType;
 
     BiLongToLongMap map;
@@ -24,6 +24,7 @@ public class BiLongToLongMapBenchmark {
     public void setup() {
         map = switch (mapType) {
             case ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE -> ArrayBackedBiLongToLongRedBlackTreeMap.create(firstKeySize * secondKeySize + 1);
+            case ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE_V2 -> ArrayBackedBiLongToLongRedBlackTreeMapV2.create(firstKeySize * secondKeySize + 1);
         };
 
         for (long i = 0; i < firstKeySize; i++) {
@@ -55,6 +56,7 @@ public class BiLongToLongMapBenchmark {
     }
 
     public enum MapType {
-        ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE
+        ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE,
+        ARRAY_BACKED_BI_LONG_TO_LONG_RED_BLACK_TREE_V2
     }
 }
